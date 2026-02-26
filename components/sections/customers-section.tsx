@@ -82,7 +82,6 @@ export function CustomersSection() {
       await customersApi.delete(id)
       setCustomers((prev) => prev.filter((c) => c.id !== id))
     } catch (error) {
-      console.error("Error deleting customer:", error)
       alert("Failed to delete customer")
     }
   }

@@ -2,8 +2,10 @@ package com.example.demo.services;
 
 import org.springframework.stereotype.Service;
 
+import com.example.demo.exceptions.ProductAlreadyRegisteredException;
 import com.example.demo.models.Product;
 import com.example.demo.repository.ProductRepository;
+
 
 import java.util.List;
 
@@ -20,7 +22,22 @@ public class ProductService {
         return repository.findAll();
     }
 
+    public Product getProductById(Long productId) {
+        return repository.getReferenceById(productId);
+    }
+
+    public Product getProductByName(String name) {
+        return repository.findByNameNative(name);
+    }
+
     public Product create(Product product) {
+
+        Product aux = repository.findByNameNative(product.getName());
+
+        if(aux != null && aux.getName().equals(product.getName())){
+            throw new ProductAlreadyRegisteredException("Product already registered.");
+        }
+
         return repository.save(product);
     }
 
@@ -29,7 +46,6 @@ public class ProductService {
         existing.setName(data.getName());
         existing.setPrice(data.getPrice());
         existing.setQuantityInStock(data.getQuantityInStock());
-        existing.setDescription(data.getDescription());
         return repository.save(existing);
     }
 

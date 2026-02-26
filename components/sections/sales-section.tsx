@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { Sell, Order, Customer } from "@/lib/types"
+import type { Sale, Order, Customer } from "@/lib/types"
 
 import {
   Table,
@@ -39,7 +39,7 @@ import { Plus, Receipt, TrendingUp } from "lucide-react"
 import { sellsApi, ordersApi, customersApi } from "@/lib/api"
 
 export function SalesSection() {
-  const [sells, setSells] = useState<Sell[]>([])
+  const [sales, setSales] = useState<Sale[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
 
@@ -57,13 +57,13 @@ export function SalesSection() {
     try {
       setLoading(true)
 
-      const [sellsData, ordersData, customersData] = await Promise.all([
+      const [salesData, ordersData, customersData] = await Promise.all([
         sellsApi.getAll(),
         ordersApi.getAll(),
         customersApi.getAll(),
       ])
 
-      setSells(sellsData)
+      setSales(salesData)
       setOrders(ordersData)
       setCustomers(customersData)
     } catch (error) {
@@ -78,29 +78,41 @@ export function SalesSection() {
   async function recordSale(orderId: number) {
     try {
       const newSell = await sellsApi.recordSale(orderId)
-      setSells((prev) => [...prev, newSell])
+      console.log(newSell)
+      setSales((prev) => [...prev, newSell])
     } catch (error) {
       console.error(error)
       alert("Error recording sale")
     }
   }
 
-  function handleRecord() {
+  async function handleRecord() {
     const orderId = parseInt(selectedOrderId)
     if (isNaN(orderId)) return
 
-    recordSale(orderId)
+    try {
+      await recordSale(orderId)
 
-    setDialogOpen(false)
-    setSelectedOrderId("")
+      // 🔥 usar el mismo campo
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId
+            ? { ...order, orderStatus: true }
+            : order
+        )
+      )
+
+      setDialogOpen(false)
+      setSelectedOrderId("")
+    } catch (error) {
+      alert("Error recording sale")
+    }
   }
 
   // 🔥 DERIVED DATA
-  const pendingOrders = orders.filter(
-    (o) => !sells.some((s) => s.orderId === o.id)
-  )
+  const pendingOrders = orders.filter(o => !o.orderStatus)
 
-  const totalRevenue = sells.reduce((sum, s) => sum + s.total, 0)
+  const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0)
 
   function getCustomerName(orderId: number) {
     const order = orders.find((o) => o.id === orderId)
@@ -144,7 +156,7 @@ export function SalesSection() {
             <Receipt className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">{sells.length}</div>
+            <div className="text-2xl font-semibold">{sales.length}</div>
           </CardContent>
         </Card>
 
@@ -170,7 +182,7 @@ export function SalesSection() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">
-              {pendingOrders.length}
+              {orders.filter(order => !order.orderStatus).length}
             </div>
           </CardContent>
         </Card>
@@ -197,18 +209,18 @@ export function SalesSection() {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : sells.length === 0 ? (
+            ) : sales.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center">
                   No sales recorded yet.
                 </TableCell>
               </TableRow>
             ) : (
-              sells.map((sell) => (
+              sales.map((sell) => (
                 <TableRow key={sell.id}>
                   <TableCell>{sell.id}</TableCell>
-                  <TableCell>Order #{sell.orderId}</TableCell>
-                  <TableCell>{getCustomerName(sell.orderId)}</TableCell>
+                  <TableCell>Order # {sell.order.id}</TableCell>
+                  <TableCell>{sell.order.customer.name}</TableCell>
                   <TableCell>
                     {new Date(sell.date).toLocaleDateString()}
                   </TableCell>

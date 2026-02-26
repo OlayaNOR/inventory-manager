@@ -24,4 +24,6 @@ public class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     private Double totalAmount;
+
+    private boolean orderStatus = false;
 }

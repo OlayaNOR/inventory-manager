@@ -1,7 +1,10 @@
 package com.example.demo.services;
 
+
 import org.springframework.stereotype.Service;
 
+import com.example.demo.exceptions.InvalidQuantityException;
+import com.example.demo.exceptions.NotEnoughStockException;
 import com.example.demo.models.Order;
 import com.example.demo.models.OrderItem;
 import com.example.demo.models.Product;
@@ -13,12 +16,15 @@ import java.util.List;
 @Service
 public class OrderService {
 
+    private final ProductService productService;
+
     private final OrderRepository repository;
     private final ProductRepository productRepository;
 
-    public OrderService(OrderRepository repository, ProductRepository productRepository) {
+    public OrderService(OrderRepository repository, ProductRepository productRepository, ProductService productService) {
         this.repository = repository;
         this.productRepository = productRepository;
+        this.productService = productService;
     }
 
     public List<Order> getAll() {
@@ -26,6 +32,23 @@ public class OrderService {
     }
 
     public Order create(Order order) {
+        for (OrderItem item : order.getItems()) {
+
+            if (item.getQuantity() < 0) {
+                throw new InvalidQuantityException("Invalid quantity.");
+            }
+
+            Product product = productService.getProductById(item.getProduct().getId());
+
+            if (product.getQuantityInStock() != null &&
+                product.getQuantityInStock() < item.getQuantity()) {
+
+                throw new NotEnoughStockException(
+                    "Not enough stock for " + product.getName()
+                );
+            }
+        }
+
         prepareItems(order);
         recalculateTotal(order);
         return repository.save(order);

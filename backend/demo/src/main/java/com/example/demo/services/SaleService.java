@@ -70,6 +70,7 @@ public class SaleService {
                     productRepository.save(managed);
                 }
             }
+            order.setOrderStatus(true);
         }
 
         Sale sale = new Sale();

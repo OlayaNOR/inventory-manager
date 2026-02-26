@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import type { Order, Customer, Product } from "@/lib/types"
+import axios from "axios"
 import {
   Table,
   TableBody,
@@ -67,7 +68,6 @@ export function OrdersSection() {
       setCustomers(customersData)
       setProducts(productsData)
     } catch (error) {
-      console.error(error)
       alert("Error loading data")
     } finally {
       setLoading(false)
@@ -83,8 +83,7 @@ export function OrdersSection() {
       const newOrder = await ordersApi.create(input)
       setOrders((prev) => [...prev, newOrder])
     } catch (error) {
-      console.error(error)
-      alert("Error creating order")
+      alert(error)
     }
   }
 
@@ -95,9 +94,13 @@ export function OrdersSection() {
     try {
       await ordersApi.delete(id)
       setOrders((prev) => prev.filter((o) => o.id !== id))
-    } catch (error) {
-      console.error(error)
-      alert("Error deleting order")
+      loadData()
+    }catch (error) {
+      if (axios.isAxiosError(error)) {
+        alert(error.response?.data?.message)
+      } else {
+        alert("Unexpected error")
+      }
     }
   }
 

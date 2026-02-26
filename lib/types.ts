@@ -24,9 +24,11 @@ export interface Order {
   customer: Customer
   items: OrderItem[]
   totalAmount: number
+  orderStatus: boolean
 }
 
-export interface Sell {
+export interface Sale {
+  order: any
   id: number
   orderId: number
   date: string

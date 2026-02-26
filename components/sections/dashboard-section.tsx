@@ -4,13 +4,13 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Package, Users, ShoppingCart, Receipt, TrendingUp, AlertTriangle } from "lucide-react"
 import { productsApi, customersApi, ordersApi, sellsApi } from "@/lib/api"
-import type { Order, Sell } from "@/lib/types"
+import type { Order, Sale, Product, Customer } from "@/lib/types"
 
 export function DashboardSection() {
-  const [products, setProducts] = useState([])
-  const [customers, setCustomers] = useState([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [sales, setSales] = useState<Sell[]>([])
+  const [sales, setSales] = useState<Sale[]>([])
 
   useEffect(() => {
     fetchAll()
@@ -30,7 +30,7 @@ export function DashboardSection() {
       setOrders(o)
       setSales(s)
     } catch (err) {
-      console.error("Error loading dashboard data", err)
+      alert(err)
     }
   }
 

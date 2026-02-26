@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import type { Product } from "@/lib/types"
+import axios from "axios"
 
 import {
   Table,
@@ -71,8 +72,7 @@ export function StockSection() {
       console.log("NEW PRODUCT:", newProduct)
       setProducts((prev) => [...prev, newProduct])
     } catch (error) {
-      console.error(error)
-      alert("Error creating product")
+      alert(error)
     }
   }
 
@@ -93,7 +93,6 @@ export function StockSection() {
       await stockApi.delete(id)
       setProducts((prev) => prev.filter((p) => p.id !== id))
     } catch (error) {
-      console.error(error)
       alert("Error deleting product")
     }
   }
