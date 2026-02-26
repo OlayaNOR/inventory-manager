@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { Order, OrderItem, Customer, Product, Sell } from "@/lib/types"
+import type { Order, Customer, Product } from "@/lib/types"
 import {
   Table,
   TableBody,
@@ -29,22 +29,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Trash2, Search, Eye, X } from "lucide-react"
+import { Plus, Trash2, Search, X } from "lucide-react"
 
-import { ordersApi, customersApi, stockApi, sellsApi } from "@/lib/api"
+import { ordersApi, customersApi, stockApi } from "@/lib/api"
 
 export function OrdersSection() {
   const [orders, setOrders] = useState<Order[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [sells, setSells] = useState<Sell[]>([])
 
   const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [detailOrderId, setDetailOrderId] = useState<number | null>(null)
 
   const [customerId, setCustomerId] = useState("")
   const [items, setItems] = useState<{ productId: string; quantity: string }[]>([
@@ -60,18 +57,15 @@ export function OrdersSection() {
     try {
       setLoading(true)
 
-      const [ordersData, customersData, productsData, sellsData] =
-        await Promise.all([
-          ordersApi.getAll(),
-          customersApi.getAll(),
-          stockApi.getAll(),
-          sellsApi.getAll(),
-        ])
+      const [ordersData, customersData, productsData] = await Promise.all([
+        ordersApi.getAll(),
+        customersApi.getAll(),
+        stockApi.getAll(),
+      ])
 
       setOrders(ordersData)
       setCustomers(customersData)
       setProducts(productsData)
-      setSells(sellsData)
     } catch (error) {
       console.error(error)
       alert("Error loading data")
@@ -81,9 +75,12 @@ export function OrdersSection() {
   }
 
   // 🔥 CREATE ORDER
-  async function addOrder(order: Omit<Order, "id" | "total">) {
+  async function addOrder(input: {
+    customerId: number
+    items: { productId: number; quantity: number }[]
+  }) {
     try {
-      const newOrder = await ordersApi.create(order)
+      const newOrder = await ordersApi.create(input)
       setOrders((prev) => [...prev, newOrder])
     } catch (error) {
       console.error(error)
@@ -106,11 +103,11 @@ export function OrdersSection() {
 
   // 🔎 FILTER
   const filtered = orders.filter((o) => {
-    const customer = customers.find((c) => c.id === o.customerId)
+    const customerName = getCustomerName(o)
     const term = search.toLowerCase()
     return (
       o.id.toString().includes(term) ||
-      (customer && customer.name.toLowerCase().includes(term))
+      customerName.toLowerCase().includes(term)
     )
   })
 
@@ -136,14 +133,12 @@ export function OrdersSection() {
     const cid = parseInt(customerId)
     if (isNaN(cid)) return
 
-    const orderItems: OrderItem[] = items
+    const orderItems = items
       .filter((i) => i.productId && i.quantity)
       .map((i) => {
-        const product = products.find((p) => p.id === parseInt(i.productId))
         return {
           productId: parseInt(i.productId),
           quantity: parseInt(i.quantity),
-          unitPrice: product?.price || 0,
         }
       })
 
@@ -158,21 +153,22 @@ export function OrdersSection() {
   }
 
   // 🔧 HELPERS
-  function getCustomerName(id: number) {
-    return customers.find((c) => c.id === id)?.name || `Customer #${id}`
+  function getCustomerName(order: Order) {
+    if ((order as any).customer?.name) return (order as any).customer.name as string
+    const id = (order as any).customer?.id as number | undefined
+    if (id != null) {
+      const customer = customers.find((c) => c.id === id)
+      if (customer) return customer.name
+    }
+    return "Customer"
   }
 
-  function getProductName(id: number) {
-    return products.find((p) => p.id === id)?.name || `Product #${id}`
+  function getOrderTotal(order: Order) {
+    const anyOrder = order as any
+    if (typeof anyOrder.totalAmount === "number") return anyOrder.totalAmount as number
+    if (typeof anyOrder.total === "number") return anyOrder.total as number
+    return 0
   }
-
-  function isSold(orderId: number) {
-    return sells.some((s) => s.orderId === orderId)
-  }
-
-  const detailOrder = detailOrderId
-    ? orders.find((o) => o.id === detailOrderId)
-    : null
 
   return (
     <div className="space-y-6">
@@ -208,9 +204,7 @@ export function OrdersSection() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead className="text-right">Items</TableHead>
               <TableHead className="text-right">Total</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -232,29 +226,11 @@ export function OrdersSection() {
               filtered.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>{order.id}</TableCell>
-                  <TableCell>{getCustomerName(order.customerId)}</TableCell>
-                  <TableCell className="text-right">{order.items.length}</TableCell>
+                  <TableCell>{getCustomerName(order)}</TableCell>
                   <TableCell className="text-right font-medium">
-                    ${order.total.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {isSold(order.id) ? (
-                      <Badge variant="secondary">Completed</Badge>
-                    ) : (
-                      <Badge variant="outline">Pending</Badge>
-                    )}
+                    ${getOrderTotal(order).toFixed(2)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setDetailOrderId(order.id)
-                        setDetailOpen(true)
-                      }}
-                    >
-                      <Eye className="size-4" />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -269,7 +245,6 @@ export function OrdersSection() {
           </TableBody>
         </Table>
       </div>
-
       {/* CREATE DIALOG */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">

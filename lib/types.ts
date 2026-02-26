@@ -1,10 +1,9 @@
-// Models matching the C# backend
-
 export interface Product {
   id: number
   name: string
   price: number
   quantityInStock: number
+  description?: string
 }
 
 export interface Customer {
@@ -14,16 +13,17 @@ export interface Customer {
 }
 
 export interface OrderItem {
-  productId: number
+  id: number
+  product: Product
   quantity: number
   unitPrice: number
 }
 
 export interface Order {
   id: number
-  customerId: number
+  customer: Customer
   items: OrderItem[]
-  total: number
+  totalAmount: number
 }
 
 export interface Sell {
@@ -31,9 +31,4 @@ export interface Sell {
   orderId: number
   date: string
   total: number
-}
-
-export interface Stock {
-  productId: number
-  quantity: number
 }

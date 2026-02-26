@@ -53,7 +53,8 @@ export function StockSection() {
     try {
       setLoading(true)
       const data = await stockApi.getAll()
-      setProducts(data)
+      const cleanData = data.filter(p => p && p.name)
+      setProducts(cleanData)
     } catch (error) {
       console.error(error)
       alert("Error loading products")
@@ -65,7 +66,9 @@ export function StockSection() {
   // 🔥 CRUD
   async function addProduct(product: Omit<Product, "id">) {
     try {
+      console.log("SENDING:", product)
       const newProduct = await stockApi.create(product)
+      console.log("NEW PRODUCT:", newProduct)
       setProducts((prev) => [...prev, newProduct])
     } catch (error) {
       console.error(error)
@@ -97,7 +100,7 @@ export function StockSection() {
 
   // 🔥 UI LOGIC
   const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p?.name?.toLowerCase().includes(search.toLowerCase())
   )
 
   function openCreate() {

@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Package, Users, ShoppingCart, Receipt, TrendingUp, AlertTriangle } from "lucide-react"
-
-const API_URL = "http://localhost:5052/api"
+import { productsApi, customersApi, ordersApi, sellsApi } from "@/lib/api"
+import type { Order, Sell } from "@/lib/types"
 
 export function DashboardSection() {
   const [products, setProducts] = useState([])
   const [customers, setCustomers] = useState([])
-  const [orders, setOrders] = useState([])
-  const [sales, setSales] = useState([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [sales, setSales] = useState<Sell[]>([])
 
   useEffect(() => {
     fetchAll()
@@ -19,10 +19,10 @@ export function DashboardSection() {
   async function fetchAll() {
     try {
       const [p, c, o, s] = await Promise.all([
-        fetch(`${API_URL}/products`).then(res => res.json()),
-        fetch(`${API_URL}/customers`).then(res => res.json()),
-        fetch(`${API_URL}/orders`).then(res => res.json()),
-        fetch(`${API_URL}/sales`).then(res => res.json())
+        productsApi.getAll(),
+        customersApi.getAll(),
+        ordersApi.getAll(),
+        sellsApi.getAll(),
       ])
 
       setProducts(p)
@@ -35,12 +35,15 @@ export function DashboardSection() {
   }
 
   // cálculos
-  const totalRevenue = sales.reduce((sum: number, s: any) => sum + s.total, 0)
+  const totalRevenue = sales.reduce((sum: number, s) => sum + s.total, 0)
 
   const lowStock = products.filter((p: any) => p.quantityInStock <= 10)
 
-  const pendingOrders = orders.filter(
-    (o: any) => !sales.some((s: any) => s.orderId === o.id)
+  const safeOrders = Array.isArray(orders) ? orders : []
+  const safeSales = Array.isArray(sales) ? sales : []
+
+  const pendingOrders = safeOrders.filter(
+    (o) => !safeSales.some((s) => s.orderId === o.id)
   )
 
   const stats = [
@@ -60,7 +63,7 @@ export function DashboardSection() {
       label: "Orders",
       value: orders.length,
       icon: ShoppingCart,
-      description: `${pendingOrders.length} pending`,
+      description: `${pendingOrders.length} total`,
     },
     {
       label: "Sales",
@@ -141,7 +144,7 @@ export function DashboardSection() {
               {sales
                 .slice(-5)
                 .reverse()
-                .map((s: any) => (
+                .map((s) => (
                   <div
                     key={s.id}
                     className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"

@@ -1,6 +1,6 @@
 import type { Product, Customer, Order, Sell } from "./types"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5052/api"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -21,46 +21,89 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
-// --- Stock / Products ---
-export const stockApi = {
-  getAll: () => fetcher<Product[]>("/stock"),
-  getById: (id: number) => fetcher<Product>(`/stock/${id}`),
+// --- Products (used as stock) ---
+export const productsApi = {
+  getAll: () => fetcher<Product[]>("/products"),
+  getById: (id: number) => fetcher<Product>(`/products/${id}`),
   create: (product: Omit<Product, "id">) =>
-    fetcher<Product>("/stock", { method: "POST", body: JSON.stringify(product) }),
+    fetcher<Product>("/products", {
+      method: "POST",
+      body: JSON.stringify(product),
+    }),
   update: (product: Product) =>
-    fetcher<void>(`/stock/${product.id}`, { method: "PUT", body: JSON.stringify(product) }),
+    fetcher<Product>(`/products/${product.id}`, {
+      method: "PUT",
+      body: JSON.stringify(product),
+    }),
   delete: (id: number) =>
-    fetcher<void>(`/stock/${id}`, { method: "DELETE" }),
+    fetcher<void>(`/products/${id}`, { method: "DELETE" }),
 }
+
+// Backwards-compatible alias for existing imports
+export const stockApi = productsApi
 
 // --- Customers ---
 export const customersApi = {
   getAll: () => fetcher<Customer[]>("/customers"),
   getById: (id: number) => fetcher<Customer>(`/customers/${id}`),
   create: (customer: Omit<Customer, "id">) =>
-    fetcher<Customer>("/customers", { method: "POST", body: JSON.stringify(customer) }),
+    fetcher<Customer>("/customers", {
+      method: "POST",
+      body: JSON.stringify(customer),
+    }),
   update: (customer: Customer) =>
-    fetcher<void>(`/customers/${customer.id}`, { method: "PUT", body: JSON.stringify(customer) }),
+    fetcher<Customer>(`/customers/${customer.id}`, {
+      method: "PUT",
+      body: JSON.stringify(customer),
+    }),
   delete: (id: number) =>
     fetcher<void>(`/customers/${id}`, { method: "DELETE" }),
 }
 
-// --- Orders ---
+// --- Orders with items ---
+type OrderItemInput = {
+  productId: number
+  quantity: number
+}
+
+type CreateOrUpdateOrderInput = {
+  customerId: number
+  items: OrderItemInput[]
+}
+
 export const ordersApi = {
   getAll: () => fetcher<Order[]>("/orders"),
   getById: (id: number) => fetcher<Order>(`/orders/${id}`),
-  create: (order: Omit<Order, "id" | "total">) =>
-    fetcher<Order>("/orders", { method: "POST", body: JSON.stringify(order) }),
-  update: (order: Order) =>
-    fetcher<void>(`/orders/${order.id}`, { method: "PUT", body: JSON.stringify(order) }),
+  create: (input: CreateOrUpdateOrderInput) =>
+    fetcher<Order>("/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        customer: { id: input.customerId },
+        items: input.items.map((i) => ({
+          product: { id: i.productId },
+          quantity: i.quantity,
+        })),
+      }),
+    }),
+  update: (id: number, input: CreateOrUpdateOrderInput) =>
+    fetcher<Order>(`/orders/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        customer: { id: input.customerId },
+        items: input.items.map((i) => ({
+          product: { id: i.productId },
+          quantity: i.quantity,
+        })),
+      }),
+    }),
   delete: (id: number) =>
     fetcher<void>(`/orders/${id}`, { method: "DELETE" }),
 }
 
-// --- Sells ---
+// --- Sales linked to orders ---
 export const sellsApi = {
-  getAll: () => fetcher<Sell[]>("/sells"),
-  getById: (id: number) => fetcher<Sell>(`/sells/${id}`),
+  getAll: () => fetcher<Sell[]>("/sales"),
+  getById: (id: number) => fetcher<Sell>(`/sales/${id}`),
   recordSale: (orderId: number) =>
-    fetcher<Sell>(`/sells/record/${orderId}`, { method: "POST" }),
+    fetcher<Sell>(`/sales/record/${orderId}`, { method: "POST" }),
 }

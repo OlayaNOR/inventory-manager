@@ -107,8 +107,8 @@ export function SalesSection() {
     if (!order) return "Unknown"
 
     return (
-      customers.find((c) => c.id === order.customerId)?.name ||
-      `Customer #${order.customerId}`
+      customers.find((c) => c.id === order.customer.id)?.name ||
+      `Customer #${order.customer.id}`
     )
   }
 
@@ -243,7 +243,8 @@ export function SalesSection() {
             <SelectContent>
               {pendingOrders.map((o) => (
                 <SelectItem key={o.id} value={o.id.toString()}>
-                  Order #{o.id} - {getCustomerName(o.id)} (${o.total})
+                  Order #{o.id} - {getCustomerName(o.id)} (
+                  ${o.totalAmount.toFixed(2)})
                 </SelectItem>
               ))}
             </SelectContent>
