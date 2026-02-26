@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Trash2, Search, X } from "lucide-react"
+import { Plus, Trash2, Search, X, Eye } from "lucide-react"
 
 import { ordersApi, customersApi, stockApi } from "@/lib/api"
 
@@ -81,7 +81,7 @@ export function OrdersSection() {
   }) {
     try {
       const newOrder = await ordersApi.create(input)
-      setOrders((prev) => [...prev, newOrder])
+      loadData()
     } catch (error) {
       alert(error)
     }
@@ -207,6 +207,8 @@ export function OrdersSection() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Items</TableHead>
+              <TableCell>STATUS</TableCell>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -230,6 +232,14 @@ export function OrdersSection() {
                 <TableRow key={order.id}>
                   <TableCell>{order.id}</TableCell>
                   <TableCell>{getCustomerName(order)}</TableCell>
+                  <TableCell>
+                    {order.items?.map((item, index) => (
+                      <div key={index}>
+                        {item.product.name} x{item.quantity}
+                      </div>
+                    ))}
+                  </TableCell>
+                  <TableCell>{order.orderStatus ? "Completed" : "Pending"}</TableCell>
                   <TableCell className="text-right font-medium">
                     ${getOrderTotal(order).toFixed(2)}
                   </TableCell>
@@ -239,7 +249,7 @@ export function OrdersSection() {
                       size="icon"
                       onClick={() => deleteOrder(order.id)}
                     >
-                      <Trash2 className="size-4 text-red-500" />
+                      <Trash2 className="size-5 text-red-500" />
                     </Button>
                   </TableCell>
                 </TableRow>
